@@ -22,15 +22,16 @@ int main(void) {
   char *args[MAX_ARGS] = {NULL};
   pid_t pid = getpid();
   int exitStatus = 0;
-    // Start main shell loop
+  char *inFile = malloc(strlen("")+1);
+  char *outFile = malloc(strlen("")+1);
+  
+  // Start main shell loop
   while(1) {
     
     // These vars are reset each loop
     int argc = 0;
     int isBackground = 0;
     pid_t childPid;
-    char *inFile = malloc(strlen("")+1);
-    char *outFile = malloc(strlen("")+1);
     strcpy(inFile, "");
     strcpy(outFile, "");
 
