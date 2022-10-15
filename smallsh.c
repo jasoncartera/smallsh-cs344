@@ -10,7 +10,7 @@
 #define MAX_ARGS 512
 #define MAX_IN 2048
 
-void parseInput(char*[], pid_t, int*, int*, char*, char*);
+void parseInput(char*[], pid_t, int*, int*, char**, char**);
 void runCommand(char*[], int*, int*, char*, char*);
 
 /* 
@@ -22,20 +22,17 @@ int main(void) {
   char *args[MAX_ARGS] = {NULL};
   pid_t pid = getpid();
   int exitStatus = 0;
-  char *inFile = malloc(strlen("")+1);
-  char *outFile = malloc(strlen("")+1);
-  
-  // Start main shell loop
+   // Start main shell loop
   while(1) {
     
     // These vars are reset each loop
     int argc = 0;
     int isBackground = 0;
     pid_t childPid;
-    strcpy(inFile, "");
-    strcpy(outFile, "");
-
-  // Print out any completed background processes before prompting for additional commands
+    char *inFile = NULL;
+    char *outFile = NULL;
+    
+    // Print out any completed background processes before prompting for additional commands
     while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
       if (WIFEXITED(exitStatus)) {
           printf("Background process %d terminated with status %d\n", childPid, WEXITSTATUS(exitStatus));
@@ -48,14 +45,13 @@ int main(void) {
 
     }
   
-
     // Parse the input
-    parseInput(args, pid, &argc, &isBackground, inFile, outFile);
+    parseInput(args, pid, &argc, &isBackground, &inFile, &outFile);
     // If comment or no input, continue
     if (args[0][0] == '#' || argc == 0) {
       continue;
     }
-    
+
     // Process exit command
     else if (!strcmp(args[0], "exit")) {
       // Free memory first
@@ -99,8 +95,16 @@ int main(void) {
       runCommand(args, &exitStatus, &isBackground, inFile, outFile);
     }
 
-    //Reset args array after each command
+    // Free memory for file names if there was one
+    if (inFile) {
+      free(inFile);
+    }
+    if (outFile) {
+      free(outFile);
+    }
+    // Reset the args array to null pointers after freeing mem
     for (int i = 0; i < MAX_ARGS; i++) {
+      free(args[i]);
       args[i] = NULL;
     }
 
@@ -132,7 +136,7 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       break;
     case 0:
       // set up redirections, basically same code as in Module 5.
-      if (strcmp(outFile, "")) {
+      if (outFile) {
         int outFD = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
         if (outFD == -1) {
           printf("cannot open %s for output\n", outFile);
@@ -151,7 +155,7 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       }
 
       // Open input for redirect
-      if (strcmp(inFile, "")) {
+      if (inFile) {
         int inFD = open(inFile, O_RDONLY);
         if (inFD == -1) {
         printf("cannot open %s for input\n", inFile);
@@ -199,16 +203,16 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
  *  pid:           shell pid
  *  argc:          number of arguments passed
  *  isBackground:  checks if command should be a background process or not
- *  inFile:        name of inFile if there is an input redirect
- *  outFile:       name of outFile if there is an output redirect
+ *  inFile:        pointer to string to store the name of inFile if there is an input redirect
+ *  outFile:       pointer to string to store the name of outFile if there is an output redirect
  */
 
-void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char *inFile, char *outFile) {
+void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **inFile, char **outFile) {
   
 
   /// Max input length defined at 2048 chars
   char input[MAX_IN];
-
+  
   printf(": ");
   fflush(stdout);
   fgets(input, MAX_IN, stdin);
@@ -217,7 +221,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char *inF
   // Remove trailing new line from fgets and replace with \0
   input[strcspn(input, "\n")] = '\0';
   
-  // Retrun if command is nothing
+  // Return if command is nothing
   if (!strcmp(input, "")) {
     args[0] = malloc(strlen("")+1);
     strcpy(args[0], "");
@@ -239,27 +243,30 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char *inF
 
   // Parse input into tokens and save command and arguments in args array
   char *token = strtok(input, " ");
-  char *lastWord = malloc(strlen("&")+1);
+  char *lastWord = NULL;
   for (int i = 0; token; i++) {
     *argc += 1;
-    lastWord = realloc(lastWord, strlen(token)+1);
+    lastWord = malloc((strlen(token)+1));
     strcpy(lastWord, token);
     // Check for output redirect
     if (strcmp(token, ">") == 0) {
       // Advance the token early to get file name
       token = strtok(NULL, " ");
-      outFile = realloc(outFile, strlen(token)+1);
-      strcpy(outFile, token);
+      // Allocate memory for file name string, will be freed in caller
+      *outFile = malloc((strlen(token)+1));
+      strcpy(*outFile, token);
+      i -= 1; // Decrement for case when more commands, i.e. echo > junk foobar
     }
     // Check for input redirect 
     else if (strcmp(token, "<") == 0) {
       token = strtok(NULL, " ");
-      inFile = realloc(inFile, strlen(token)+1);
-      strcpy(inFile, token);
+      *inFile = malloc((strlen(token)+1));
+      strcpy(*inFile, token);
+      i -= 1;
     }
     // add to args
     else {
-      args[i] = malloc(strlen(token)+1);
+      args[i] = malloc((strlen(token)+1));
       strcpy(args[i], token);
     }
     token = strtok(NULL, " ");
@@ -270,7 +277,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char *inF
     // Remove flag so command will exec properly
     args[*argc-1] = NULL;
   }
-
+  // Free the last word temp var
   free(lastWord);
 
 }

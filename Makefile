@@ -4,4 +4,4 @@ RECFLAGS = -O3 -Wall -Wextra -Wpedantic
 #-Werror
 
 smallshmake:
-	$(CC) $(CFLAGS) -o smallsh smallsh.c $(RECFLAGS)
+	$(CC) $(CFLAGS) -g -o smallsh smallsh.c $(RECFLAGS)
