@@ -5,26 +5,34 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <sys/types.h>
 
 #define MAX_ARGS 512
 #define MAX_IN 2048
 
 void parseInput(char*[], pid_t, int*, int*, char**, char**);
 void runCommand(char*[], int*, int*, char*, char*);
+void handleSIGTSTP(int signo);
+
+// Global variable to toggle SIGTSTP;
+int allowBG = 1;
+
 
 /* 
  * main() processes the input and executes commands
  */
 int main(void) {
   
+  
   // Initalize NULL to make execv call easier
   char *args[MAX_ARGS] = {NULL};
   pid_t pid = getpid();
   int exitStatus = 0;
-   // Start main shell loop
+  
+  
+  // Start main shell loop
   while(1) {
-    
+       
     // These vars are reset each loop
     int argc = 0;
     int isBackground = 0;
@@ -32,6 +40,15 @@ int main(void) {
     char *inFile = NULL;
     char *outFile = NULL;
     
+
+    // Set up signal handling
+    struct sigaction SIGTSTP_action = {0};
+    SIGTSTP_action.sa_handler = handleSIGTSTP;
+    sigfillset(&SIGTSTP_action.sa_mask);
+    SIGTSTP_action.sa_flags = 0;
+    sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+
+
     // Print out any completed background processes before prompting for additional commands
     while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
       if (WIFEXITED(exitStatus)) {
@@ -126,8 +143,12 @@ int main(void) {
 
 void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, char *outFile) {
   
+  // For system cmds, ignore SIGTSTP in foreground and background
+  //struct sigaction ignoreSIGTSTP = {0};
+  //ignoreSIGTSTP.sa_handler = SIG_IGN;
+  //ignoreSIGTSTP.sa_flags = SA_RESTART;
 
-  // fork a new process
+    // fork a new process
   pid_t spawnpid = fork();
   switch (spawnpid) {
     case -1:
@@ -135,6 +156,7 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       exit(1);
       break;
     case 0:
+
       // set up redirections, basically same code as in Module 5.
       if (outFile) {
         int outFD = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -180,7 +202,7 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       break;
 
     default:
-      if (*isBackground) {
+      if (*isBackground && allowBG) {
         // WNOHANG flag for background process
         waitpid(spawnpid, exitStatus, WNOHANG);
         printf("background pid is %d\n", spawnpid);
@@ -210,13 +232,13 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
 void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **inFile, char **outFile) {
   
 
-  /// Max input length defined at 2048 chars
-  char input[MAX_IN];
-  
+  // Max input length defined at 2048 chars
+  //char *input = malloc(MAX_IN* sizeof(char));
+  char input[MAX_IN] = {'\0'};
+
   printf(": ");
   fflush(stdout);
   fgets(input, MAX_IN, stdin);
-
 
   // Remove trailing new line from fgets and replace with \0
   input[strcspn(input, "\n")] = '\0';
@@ -279,7 +301,27 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
   }
   // Free the last word temp var
   free(lastWord);
+  
+  // reset input (did not think this was necessary until 
+  // processing signals and control-z caused use of last input)
+  memset(input, '\0', MAX_IN);
+}
 
+/* Customer handler for the SIGTSTP signal
+ * Code modified from class Module 5
+ */
+void handleSIGTSTP(int signo) {
+  if (allowBG) {
+    char *msgEnter = "\nEntering foreground-only mode (& is now ignored)\n";
+    write(STDOUT_FILENO, msgEnter, 51);
+    fflush(stdout);
+    allowBG = 0;
+  } else {
+    char *msgExit = "\nExiting foreground-only mode\n";
+    write(STDOUT_FILENO, msgExit, 31);
+    fflush(stdout);
+    allowBG = 1;
+  }
 }
 
 
