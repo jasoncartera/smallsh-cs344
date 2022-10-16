@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -29,6 +30,19 @@ int main(void) {
   pid_t pid = getpid();
   int exitStatus = 0;
   
+  // Set up control-z signal handling
+  struct sigaction SIGTSTP_action = {0};
+  SIGTSTP_action.sa_handler = handleSIGTSTP;
+  sigfillset(&SIGTSTP_action.sa_mask);
+  SIGTSTP_action.sa_flags = 0;
+  sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+
+  // ignore control-C (SIGINT)
+  struct sigaction SIGINT_action = {0};
+  SIGINT_action.sa_handler = SIG_IGN;
+  sigfillset(&SIGINT_action.sa_mask);
+  SIGINT_action.sa_flags = 0;
+  sigaction(SIGINT, &SIGINT_action, NULL);
   
   // Start main shell loop
   while(1) {
@@ -41,14 +55,7 @@ int main(void) {
     char *outFile = NULL;
     
 
-    // Set up signal handling
-    struct sigaction SIGTSTP_action = {0};
-    SIGTSTP_action.sa_handler = handleSIGTSTP;
-    sigfillset(&SIGTSTP_action.sa_mask);
-    SIGTSTP_action.sa_flags = 0;
-    sigaction(SIGTSTP, &SIGTSTP_action, NULL);
-
-
+    
     // Print out any completed background processes before prompting for additional commands
     while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
       if (WIFEXITED(exitStatus)) {
@@ -146,17 +153,26 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
   // For system cmds, ignore SIGTSTP in foreground and background
   //struct sigaction ignoreSIGTSTP = {0};
   //ignoreSIGTSTP.sa_handler = SIG_IGN;
-  //ignoreSIGTSTP.sa_flags = SA_RESTART;
-
-    // fork a new process
+  // control z behavior for child processes
+  //sigaction(SIGTSTP, &ignoreSIGTSTP, NULL);
+  
+      // fork a new process
   pid_t spawnpid = fork();
+  
+  
+
   switch (spawnpid) {
     case -1:
       perror("Fork() failed");
       exit(1);
       break;
     case 0:
-
+      // If forground process control c default behavior
+      if (*isBackground == 0) {
+        struct sigaction sigint = {0};
+        sigint.sa_handler = SIG_DFL;
+        sigaction(SIGINT, &sigint, NULL);
+      }
       // set up redirections, basically same code as in Module 5.
       if (outFile) {
         int outFD = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -202,7 +218,7 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       break;
 
     default:
-      if (*isBackground && allowBG) {
+      if (*isBackground) {
         // WNOHANG flag for background process
         waitpid(spawnpid, exitStatus, WNOHANG);
         printf("background pid is %d\n", spawnpid);
@@ -211,6 +227,10 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       } else {
         // Forground process, wait for competion and set exit status
         waitpid(spawnpid, exitStatus, 0);
+        if (WIFSIGNALED(*exitStatus)) {
+          printf("terminated with signal %d\n", WTERMSIG(*exitStatus));
+          fflush(stdout);
+        } 
       }
   }
 
@@ -293,10 +313,14 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
     }
     token = strtok(NULL, " ");
   }
-
+  
+  // set process as background process if & and allowBG is enabled
   if (!strcmp(lastWord, "&")) {
-    *isBackground = 1;
-    // Remove flag so command will exec properly
+    if (allowBG) {
+      *isBackground = 1;
+    }
+    
+    // Remove flag so command will exec properly even if allowBG is false
     args[*argc-1] = NULL;
   }
   // Free the last word temp var
