@@ -54,7 +54,6 @@ int main(void) {
     char *inFile = NULL;
     char *outFile = NULL;
     
-
     
     // Print out any completed background processes before prompting for additional commands
     while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
@@ -73,6 +72,11 @@ int main(void) {
     parseInput(args, pid, &argc, &isBackground, &inFile, &outFile);
     // If comment or no input, continue
     if (args[0][0] == '#' || argc == 0) {
+      // Reset the args array to null pointers after freeing mem
+      for (int i = 0; i < MAX_ARGS; i++) {
+      free(args[i]);
+      args[i] = NULL;
+      }
       continue;
     }
 
@@ -150,17 +154,15 @@ int main(void) {
 
 void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, char *outFile) {
   
-  // For system cmds, ignore SIGTSTP in foreground and background
-  //struct sigaction ignoreSIGTSTP = {0};
-  //ignoreSIGTSTP.sa_handler = SIG_IGN;
-  // control z behavior for child processes
-  //sigaction(SIGTSTP, &ignoreSIGTSTP, NULL);
-  
-      // fork a new process
+  // Set up blocking of SIGTSTP so SIG_ING can be installed in child process (both fg and bg)
+  // Blocked signals are queued, similar to sa_mask, so custom handler will execute after completion of child process
+  sigset_t sigtoblock;
+  sigaddset(&sigtoblock, SIGTSTP);
+  sigprocmask(SIG_BLOCK, &sigtoblock, NULL);
+
+  // fork a new process
   pid_t spawnpid = fork();
   
-  
-
   switch (spawnpid) {
     case -1:
       perror("Fork() failed");
@@ -173,6 +175,13 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
         sigint.sa_handler = SIG_DFL;
         sigaction(SIGINT, &sigint, NULL);
       }
+
+      // For system cmds, ignore SIGTSTP in foreground and background
+      struct sigaction ignoreSIGTSTP = {0};
+      ignoreSIGTSTP.sa_handler = SIG_IGN;
+      // control z behavior for child processes
+      sigaction(SIGTSTP, &ignoreSIGTSTP, NULL);
+  
       // set up redirections, basically same code as in Module 5.
       if (outFile) {
         int outFD = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -232,6 +241,9 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
           fflush(stdout);
         } 
       }
+      
+      // Unblock the SIGTSTP signal 
+      sigprocmask(SIG_UNBLOCK, &sigtoblock, NULL);
   }
 
 }
@@ -253,7 +265,6 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
   
 
   // Max input length defined at 2048 chars
-  //char *input = malloc(MAX_IN* sizeof(char));
   char input[MAX_IN] = {'\0'};
 
   printf(": ");
@@ -320,7 +331,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
       *isBackground = 1;
     }
     
-    // Remove flag so command will exec properly even if allowBG is false
+    // Remove flag so command will exec properly
     args[*argc-1] = NULL;
   }
   // Free the last word temp var
@@ -338,14 +349,13 @@ void handleSIGTSTP(int signo) {
   if (allowBG) {
     char *msgEnter = "\nEntering foreground-only mode (& is now ignored)\n";
     write(STDOUT_FILENO, msgEnter, 51);
-    fflush(stdout);
     allowBG = 0;
   } else {
     char *msgExit = "\nExiting foreground-only mode\n";
     write(STDOUT_FILENO, msgExit, 31);
-    fflush(stdout);
     allowBG = 1;
   }
+  fflush(stdout);
 }
 
 
