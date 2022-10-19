@@ -1,4 +1,3 @@
-#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -345,8 +344,8 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
   if (!strcmp(lastWord, "&")) {
     if (allowBG) {
       *isBackground = 1;
-      *argc -= 1;
     }
+    *argc -= 1;
     
     // Remove flag so command will exec properly
     args[*argc] = NULL;
