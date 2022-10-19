@@ -30,6 +30,13 @@ int main(void) {
   pid_t pid = getpid();
   int exitStatus = 0;
   
+   // parent must ignore control-C (SIGINT)
+  struct sigaction SIGINT_action = {0};
+  SIGINT_action.sa_handler = SIG_IGN;
+  sigfillset(&SIGINT_action.sa_mask);
+  SIGINT_action.sa_flags = 0;
+  sigaction(SIGINT, &SIGINT_action, NULL);
+  
   // Set up control-z signal handling
   struct sigaction SIGTSTP_action = {0};
   SIGTSTP_action.sa_handler = handleSIGTSTP;
@@ -37,13 +44,7 @@ int main(void) {
   SIGTSTP_action.sa_flags = 0;
   sigaction(SIGTSTP, &SIGTSTP_action, NULL);
 
-  // parent must ignore control-C (SIGINT)
-  struct sigaction SIGINT_action = {0};
-  SIGINT_action.sa_handler = SIG_IGN;
-  sigfillset(&SIGINT_action.sa_mask);
-  SIGINT_action.sa_flags = 0;
-  sigaction(SIGINT, &SIGINT_action, NULL);
-  
+
   // Start main shell loop
   while(1) {
        
@@ -54,7 +55,7 @@ int main(void) {
     char *inFile = NULL;
     char *outFile = NULL;
     
-    
+      
     // Print out any completed background processes before prompting for additional commands
     while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
       if (WIFEXITED(exitStatus)) {
@@ -163,12 +164,13 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
    *  Set up blocking of SIGTSTP so this signal is ignored by child foreground and background processes
    *  Blocked signals are delivered after being unblocked, so SIGTSTP will be delivered after 
    *  the process is complete per the assignment specifications
-   *  Reference: Linux Programming Interface book 20.11
-   *  
+   *  Reference: Linux Programming Interface book 20.11  
   */
+
   sigset_t sigtoblock;
   sigaddset(&sigtoblock, SIGTSTP);
   sigprocmask(SIG_BLOCK, &sigtoblock, NULL);
+
 
   // If background and no redirect, redirect to dev/null per assignment specifications
   if (!outFile && *isBackground) {
@@ -188,13 +190,14 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       exit(1);
       break;
     case 0:
-      // If foreground process control-c default behavior
+
+      // Install default behavior of SIGINT for foreground process
       if (*isBackground == 0) {
         struct sigaction sigint = {0};
         sigint.sa_handler = SIG_DFL;
         sigaction(SIGINT, &sigint, NULL);
       }
-     
+
 
       // set up redirections, basically same code as in Module 5.
       if (outFile) {
@@ -311,9 +314,9 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
 
   // Parse input into tokens and save command and arguments in args array
   char *token = strtok(input, " ");
-  char *lastWord = NULL;
+  char *lastWord = malloc(strlen("&")+1);
   for (int i = 0; token; i++) {
-    lastWord = malloc((strlen(token)+1));
+    lastWord = realloc(lastWord, (strlen(token)+1));
     strcpy(lastWord, token);
     // Check for output redirect
     if (strcmp(token, ">") == 0) {
@@ -345,10 +348,9 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
     if (allowBG) {
       *isBackground = 1;
     }
-    *argc -= 1;
     
     // Remove flag so command will exec properly
-    args[*argc] = NULL;
+    args[*argc-1] = NULL;
   }
   
   // Free the last word temp var
