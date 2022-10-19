@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include "smallsh.h"
 
 #define MAX_ARGS 512
 #define MAX_IN 2048
