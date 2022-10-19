@@ -6,9 +6,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include "smallsh.h"
 
-#define MAX_ARGS 512
-#define MAX_IN 2048
+// Global variable to toggle SIGTSTP - I don't think there is another way to handle this;
+// type from The Linux Programming Interface 21.1.3
+volatile sig_atomic_t allowBG;
 
 /*
  * Prompts the user and parses input into an array of arguments

@@ -2,6 +2,9 @@
 #define SMALLSH
 #include <unistd.h>
 
+#define MAX_ARGS 512
+#define MAX_IN 2048
+
 /*
  * Prompts the user and parses input into an array of arguments
  *
@@ -32,6 +35,7 @@ void runCommand(char*[], int*, int*, char*, char*);
 /* Customer handler for the SIGTSTP signal
  * Code modified from class Module 5
  */
+
 void handleSIGTSTP(int signo);
 
 #endif 
