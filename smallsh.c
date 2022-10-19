@@ -15,12 +15,13 @@ void parseInput(char*[], pid_t, int*, int*, char**, char**);
 void runCommand(char*[], int*, int*, char*, char*);
 void handleSIGTSTP(int signo);
 
-// Global variable to toggle SIGTSTP;
-int allowBG = 1;
+// Global variable to toggle SIGTSTP - I don't think there is another way to handle this;
+// type from The Linux Programming Interface 21.1.3
+volatile sig_atomic_t allowBG = 1;
 
 
 /* 
- * main() processes the input and executes commands
+ * main() processes the input and executes commands in main loop
  */
 int main(void) {
   
@@ -37,7 +38,7 @@ int main(void) {
   SIGTSTP_action.sa_flags = 0;
   sigaction(SIGTSTP, &SIGTSTP_action, NULL);
 
-  // ignore control-C (SIGINT)
+  // parent must ignore control-C (SIGINT)
   struct sigaction SIGINT_action = {0};
   SIGINT_action.sa_handler = SIG_IGN;
   sigfillset(&SIGINT_action.sa_mask);
@@ -70,9 +71,12 @@ int main(void) {
   
     // Parse the input
     parseInput(args, pid, &argc, &isBackground, &inFile, &outFile);
+
     // If comment or no input, continue
     if (args[0][0] == '#' || argc == 0) {
       // Reset the args array to null pointers after freeing mem
+      // Requred for comments, for example # ls -a will save ls -a in args, so must be cleared
+      // TODO: Probably should handle this in the parseInput function
       for (int i = 0; i < MAX_ARGS; i++) {
       free(args[i]);
       args[i] = NULL;
@@ -82,7 +86,9 @@ int main(void) {
 
     // Process exit command
     else if (!strcmp(args[0], "exit")) {
-      // Free memory first
+      //TODO: free any child processes - require keeping track in array?
+
+      // Free memory before exit
       free(inFile);
       free(outFile);
       for (int i = 0; i < MAX_ARGS; i++) {
@@ -123,7 +129,7 @@ int main(void) {
       runCommand(args, &exitStatus, &isBackground, inFile, outFile);
     }
 
-    // Free memory for file names if there was one
+    // Before next prompt: free memory for file names if there was one
     if (inFile) {
       free(inFile);
     }
@@ -154,11 +160,25 @@ int main(void) {
 
 void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, char *outFile) {
   
-  // Set up blocking of SIGTSTP so SIG_ING can be installed in child process (both fg and bg)
-  // Blocked signals are queued, similar to sa_mask, so custom handler will execute after completion of child process
+  /* 
+   *  Set up blocking of SIGTSTP so this signal is ignored by child foreground and background processes
+   *  Blocked signals are delivered after being unblocked, so SIGTSTP will be delivered after 
+   *  the process is complete per the assignment specifications
+   *  Reference: Linux Programming Interface book 20.11
+   *  
+  */
   sigset_t sigtoblock;
   sigaddset(&sigtoblock, SIGTSTP);
   sigprocmask(SIG_BLOCK, &sigtoblock, NULL);
+
+  // If background and no redirect, redirect to dev/null per assignment specifications
+  if (!outFile && *isBackground) {
+    outFile = "/dev/null";
+  }
+  
+  if (!inFile && *isBackground) {
+    inFile = "/dev/null";
+  }
 
   // fork a new process
   pid_t spawnpid = fork();
@@ -169,19 +189,14 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       exit(1);
       break;
     case 0:
-      // If forground process control c default behavior
+      // If foreground process control-c default behavior
       if (*isBackground == 0) {
         struct sigaction sigint = {0};
         sigint.sa_handler = SIG_DFL;
         sigaction(SIGINT, &sigint, NULL);
       }
+     
 
-      // For system cmds, ignore SIGTSTP in foreground and background
-      struct sigaction ignoreSIGTSTP = {0};
-      ignoreSIGTSTP.sa_handler = SIG_IGN;
-      // control z behavior for child processes
-      sigaction(SIGTSTP, &ignoreSIGTSTP, NULL);
-  
       // set up redirections, basically same code as in Module 5.
       if (outFile) {
         int outFD = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -197,7 +212,7 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
           perror("target dup2()");
           exit(1);
         }
-        // Set so child closes
+        // Set so child closes fd
         fcntl(outFD, F_SETFD, FD_CLOEXEC);
       }
 
@@ -205,9 +220,9 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
       if (inFile) {
         int inFD = open(inFile, O_RDONLY);
         if (inFD == -1) {
-        printf("cannot open %s for input\n", inFile);
-        fflush(stdout);
-        exit(1);
+          printf("cannot open %s for input\n", inFile);
+          fflush(stdout);
+          exit(1);
         }
 
         // Redirect stdin
@@ -219,7 +234,8 @@ void runCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, 
 
          fcntl(inFD, F_SETFD, FD_CLOEXEC);
       }
-
+      
+      // Execute the command, execvp process args until NULL is reached
       execvp(args[0], args);
       perror(args[0]);
       exit(1);
@@ -298,7 +314,6 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
   char *token = strtok(input, " ");
   char *lastWord = NULL;
   for (int i = 0; token; i++) {
-    *argc += 1;
     lastWord = malloc((strlen(token)+1));
     strcpy(lastWord, token);
     // Check for output redirect
@@ -320,6 +335,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
     // add to args
     else {
       args[i] = malloc((strlen(token)+1));
+      *argc += 1;
       strcpy(args[i], token);
     }
     token = strtok(NULL, " ");
@@ -329,11 +345,13 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
   if (!strcmp(lastWord, "&")) {
     if (allowBG) {
       *isBackground = 1;
+      *argc -= 1;
     }
     
     // Remove flag so command will exec properly
-    args[*argc-1] = NULL;
+    args[*argc] = NULL;
   }
+  
   // Free the last word temp var
   free(lastWord);
   
