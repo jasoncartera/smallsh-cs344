@@ -91,9 +91,7 @@ int main(void) {
         if (chdir(args[1]) == -1) {
           printf("Directory not found.\n");
           fflush(stdout);
-        } else {
-          chdir(args[1]);
-          }
+        }
 
       } else {
         chdir(getenv("HOME"));
