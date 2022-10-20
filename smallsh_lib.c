@@ -122,6 +122,7 @@ void runExternalCommand(char *args[], int *exitStatus, int *isBackground, char *
   */
 
   sigset_t sigtoblock;
+  sigemptyset(&sigtoblock);
   sigaddset(&sigtoblock, SIGTSTP);
   sigprocmask(SIG_BLOCK, &sigtoblock, NULL);
 
