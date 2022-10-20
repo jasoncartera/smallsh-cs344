@@ -3,7 +3,7 @@
 
 #define MAX_ARGS 512
 #define MAX_IN 2048
-#define MAX_PID 20
+#define MAX_PID 1024
 
 /*
  * Prompts the user and parses input into an array of arguments
