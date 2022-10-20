@@ -92,6 +92,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
     }
     
     // Remove flag so command will exec properly
+    free(args[*argc-1]);
     args[*argc-1] = NULL;
   }
   
