@@ -16,7 +16,8 @@ int main(void) {
   char *args[MAX_ARGS] = {NULL};
   pid_t pid = getpid();
   int exitStatus = 0;
-  pid_t pid_list[1024] = {0};
+  pid_t pid_list[MAX_PID] = {0};
+  int numBackground = 0;
   
    // parent must ignore control-C (SIGINT)
   struct sigaction SIGINT_action = {0};
@@ -39,22 +40,30 @@ int main(void) {
     // These vars are reset each loop
     int argc = 0;
     int isBackground = 0;
-    pid_t childPid;
     char *inFile = NULL;
     char *outFile = NULL;
     
-      
-    // Print out any completed background processes before prompting for additional commands
-    while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
-      if (WIFEXITED(exitStatus)) {
-          printf("Background process %d terminated with status %d\n", childPid, WEXITSTATUS(exitStatus));
-          fflush(stdout);
-      } 
-      if (WIFSIGNALED(exitStatus)) {
-          printf("Background process %d terminated with signal %d\n", childPid, WTERMSIG(exitStatus));
-          fflush(stdout);
-      } 
-
+    
+    // Check for if any background processes have finished
+    if (numBackground > 0) {
+      for (int i = 0; i < MAX_PID; i++) {
+        // Only check pid > 0, since empty element = 0 and waitpid will wait for any child process group id if == 0
+        if (pid_list[i] > 0) {
+          if (waitpid(pid_list[i], &exitStatus, WNOHANG) > 0) {
+            printf("%d\n", pid_list[i]);
+            if (WIFEXITED(exitStatus)) {
+              printf("Background process %d terminated with status %d\n", pid_list[i], WEXITSTATUS(exitStatus));
+              fflush(stdout);
+            } 
+            if (WIFSIGNALED(exitStatus)) {
+              printf("Background process %d terminated with signal %d\n", pid_list[i], WTERMSIG(exitStatus));
+              fflush(stdout);
+            } 
+            pid_list[i] = 0;
+            numBackground -= 1;
+          }
+        }
+      }
     }
   
     // Parse the input
@@ -74,8 +83,11 @@ int main(void) {
 
     // Process exit command
     else if (!strcmp(args[0], "exit")) {
-      //TODO: free any child processes - require keeping track in array?
-
+      for (int i = 0; i < MAX_PID; i++) {
+        if (pid_list[i] != 0) {
+          kill(pid_list[i], SIGKILL);
+        }
+      }
       // Free memory before exit
       free(inFile);
       free(outFile);
@@ -112,7 +124,7 @@ int main(void) {
     
     // All other commands
     else {
-      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile, pid_list);
+      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile, pid_list, &numBackground);
     }
 
     // Before next prompt: free memory for file names if there was one

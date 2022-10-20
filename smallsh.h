@@ -3,6 +3,7 @@
 
 #define MAX_ARGS 512
 #define MAX_IN 2048
+#define MAX_PID 20
 
 /*
  * Prompts the user and parses input into an array of arguments
@@ -29,7 +30,7 @@ void parseInput(char*[], pid_t, int*, int*, char**, char**);
  *  outFile:      name of outFile if there is an output redirect
  */
 
-void runExternalCommand(char*[], int*, int*, char*, char*, pid_t[]);
+void runExternalCommand(char*[], int*, int*, char*, char*, pid_t[], int*);
 
 /* Customer handler for the SIGTSTP signal
  * Code modified from class Module 5
