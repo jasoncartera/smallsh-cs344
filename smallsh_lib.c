@@ -59,10 +59,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
 
   // Parse input into tokens and save command and arguments in args array
   char *token = strtok(input, " ");
-  char *lastWord = malloc(strlen("&")+1);
   for (int i = 0; token; i++) {
-    lastWord = realloc(lastWord, (strlen(token)+1));
-    strcpy(lastWord, token);
     // Check for output redirect
     if (strcmp(token, ">") == 0) {
       // Advance the token early to get file name
@@ -89,7 +86,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
   }
   
   // set process as background process if & and allowBG is enabled
-  if (!strcmp(lastWord, "&")) {
+  if (!strcmp(args[*argc-1], "&")) {
     if (allowBG) {
       *isBackground = 1;
     }
@@ -98,8 +95,6 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
     args[*argc-1] = NULL;
   }
   
-  // Free the last word temp var
-  free(lastWord);
   
   // reset input (did not think this was necessary until 
   // processing signals and control-z caused use of last input)
