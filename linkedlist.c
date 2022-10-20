@@ -19,7 +19,6 @@ void insert_node(pid_t val, node *head) {
   current->next = new_node;
   new_node->val = val;
   new_node->next = NULL; 
-  head = new_node;
 }
 
 // Removes a node from the list and frees memory
@@ -29,5 +28,6 @@ void remove_node(node *head, int val) {
     current = current->next;
   }
   current->next = current->next->next;
+  free(current);
 }
 
