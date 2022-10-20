@@ -4,6 +4,13 @@
 #define MAX_ARGS 512
 #define MAX_IN 2048
 
+
+typedef struct node {
+    pid_t val;
+    struct node *next;
+  } node;
+
+
 /*
  * Prompts the user and parses input into an array of arguments
  *
@@ -29,13 +36,20 @@ void parseInput(char*[], pid_t, int*, int*, char**, char**);
  *  outFile:      name of outFile if there is an output redirect
  */
 
-void runExternalCommand(char*[], int*, int*, char*, char*);
+void runExternalCommand(char*[], int*, int*, char*, char*, node*);
 
 /* Customer handler for the SIGTSTP signal
  * Code modified from class Module 5
  */
 
 void handleSIGTSTP(int signo);
+
+
+void insert_node(pid_t val, node *head);
+
+void remove_node(node *head, pid_t val);
+
+void iterate_nodes(node *head);
 
 #endif 
 

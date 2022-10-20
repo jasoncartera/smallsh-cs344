@@ -16,6 +16,9 @@ int main(void) {
   char *args[MAX_ARGS] = {NULL};
   pid_t pid = getpid();
   int exitStatus = 0;
+  node *pid_list = NULL;
+  pid_list = (node *) malloc(sizeof(node));
+  pid_list->next = NULL;
   
    // parent must ignore control-C (SIGINT)
   struct sigaction SIGINT_action = {0};
@@ -38,23 +41,44 @@ int main(void) {
     // These vars are reset each loop
     int argc = 0;
     int isBackground = 0;
-    pid_t childPid;
+    //pid_t childPid;
     char *inFile = NULL;
     char *outFile = NULL;
     
-      
-    // Print out any completed background processes before prompting for additional commands
-    while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
-      if (WIFEXITED(exitStatus)) {
-          printf("Background process %d terminated with status %d\n", childPid, WEXITSTATUS(exitStatus));
-          fflush(stdout);
-      } 
-      if (WIFSIGNALED(exitStatus)) {
-          printf("Background process %d terminated with signal %d\n", childPid, WTERMSIG(exitStatus));
-          fflush(stdout);
-      } 
-
+    
+    node *ptr = pid_list;
+    if (ptr->next != NULL) {
+      ptr = ptr->next;
+      while (ptr != NULL){
+          if (waitpid(ptr->val, &exitStatus, WNOHANG) > 0) {
+            if (WIFEXITED(exitStatus)) {
+              printf("Background process %d terminated with status %d\n", ptr->val, WEXITSTATUS(exitStatus));
+              fflush(stdout);
+              remove_node(pid_list, ptr->val);
+            } 
+            if (WIFSIGNALED(exitStatus)) {
+              printf("Background process %d terminated with signal %d\n", ptr->val, WTERMSIG(exitStatus));
+              fflush(stdout);
+              remove_node(pid_list, ptr->val);
+            } 
+          }
+        
+        ptr = ptr->next;
+      }  
     }
+
+    // // Print out any completed background processes before prompting for additional commands
+    // while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
+    //   if (WIFEXITED(exitStatus)) {
+    //       printf("Background process %d terminated with status %d\n", childPid, WEXITSTATUS(exitStatus));
+    //       fflush(stdout);
+    //   } 
+    //   if (WIFSIGNALED(exitStatus)) {
+    //       printf("Background process %d terminated with signal %d\n", childPid, WTERMSIG(exitStatus));
+    //       fflush(stdout);
+    //   } 
+
+    // }
   
     // Parse the input
     parseInput(args, pid, &argc, &isBackground, &inFile, &outFile);
@@ -81,6 +105,7 @@ int main(void) {
       for (int i = 0; i < MAX_ARGS; i++) {
         free(args[i]);
       }
+      free(pid_list);
       exit(0);
     }
    
@@ -111,7 +136,7 @@ int main(void) {
     
     // All other commands
     else {
-      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile);
+      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile, pid_list);
     }
 
     // Before next prompt: free memory for file names if there was one
