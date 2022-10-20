@@ -12,7 +12,6 @@
  */
 int main(void) {
   
-  
   // Initalize NULL to make execv call easier
   char *args[MAX_ARGS] = {NULL};
   pid_t pid = getpid();
@@ -112,7 +111,7 @@ int main(void) {
     
     // All other commands
     else {
-      runCommand(args, &exitStatus, &isBackground, inFile, outFile);
+      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile);
     }
 
     // Before next prompt: free memory for file names if there was one

@@ -1,6 +1,5 @@
 #ifndef SMALLSH
 #define SMALLSH
-#include <unistd.h>
 
 #define MAX_ARGS 512
 #define MAX_IN 2048
@@ -30,7 +29,7 @@ void parseInput(char*[], pid_t, int*, int*, char**, char**);
  *  outFile:      name of outFile if there is an output redirect
  */
 
-void runCommand(char*[], int*, int*, char*, char*);
+void runExternalCommand(char*[], int*, int*, char*, char*);
 
 /* Customer handler for the SIGTSTP signal
  * Code modified from class Module 5
