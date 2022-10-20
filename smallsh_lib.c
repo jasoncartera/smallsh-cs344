@@ -10,7 +10,7 @@
 
 // Global variable to toggle SIGTSTP - I don't think there is another way to handle this;
 // type from The Linux Programming Interface 21.1.3
-volatile sig_atomic_t allowBG;
+volatile sig_atomic_t allowBG = 1;
 
 /*
  * Prompts the user and parses input into an array of arguments
