@@ -113,7 +113,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
  *  outFile:      name of outFile if there is an output redirect
  */
 
-void runExternalCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, char *outFile, node *pid_list) {
+void runExternalCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, char *outFile, node **pid_list) {
   
   /* 
    *  Set up blocking of SIGTSTP so this signal is ignored by child foreground and background processes

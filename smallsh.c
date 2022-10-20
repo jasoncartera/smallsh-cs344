@@ -17,8 +17,7 @@ int main(void) {
   pid_t pid = getpid();
   int exitStatus = 0;
   node *pid_list = NULL;
-  pid_list = (node *) malloc(sizeof(node));
-  pid_list->next = NULL;
+
   
    // parent must ignore control-C (SIGINT)
   struct sigaction SIGINT_action = {0};
@@ -47,19 +46,18 @@ int main(void) {
     
     
     node *ptr = pid_list;
-    if (ptr->next != NULL) {
-      ptr = ptr->next;
+    if (ptr != NULL) {
       while (ptr != NULL){
           if (waitpid(ptr->val, &exitStatus, WNOHANG) > 0) {
             if (WIFEXITED(exitStatus)) {
               printf("Background process %d terminated with status %d\n", ptr->val, WEXITSTATUS(exitStatus));
               fflush(stdout);
-              remove_node(pid_list, ptr->val);
+              remove_node(&pid_list, ptr->val);
             } 
             if (WIFSIGNALED(exitStatus)) {
               printf("Background process %d terminated with signal %d\n", ptr->val, WTERMSIG(exitStatus));
               fflush(stdout);
-              remove_node(pid_list, ptr->val);
+              remove_node(&pid_list, ptr->val);
             } 
           }
         
@@ -136,7 +134,7 @@ int main(void) {
     
     // All other commands
     else {
-      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile, pid_list);
+      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile, &pid_list);
     }
 
     // Before next prompt: free memory for file names if there was one

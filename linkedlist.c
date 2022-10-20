@@ -9,24 +9,30 @@
  */
 
 // Inserts a node to the list
-void insert_node(pid_t val, node *head) {
-  node *current = head;
-  while (current->next != NULL){
-    current = current->next;
-  }
-  
+void insert_node(pid_t val, node **head) {
   struct node *new_node = (node *) malloc(sizeof(node));
-  current->next = new_node;
   new_node->val = val;
-  new_node->next = NULL; 
+  new_node->next = *head;
+  *head = new_node;
 }
 
 // Removes a node from the list and frees memory
-void remove_node(node *head, int val) {
-  node *current = head;
-  while (current->next->val != val) {
+void remove_node(node **head, pid_t val) {
+  node *current = *head;
+  node *prev = *head;
+
+  if (current != NULL && current->val == val) {
+    *head = current->next;
+    free(current);
+    return;
+  }
+
+  while (current->val != val) {
+    prev = current;
     current = current->next;
   }
-  current->next = current->next->next;
+  printf("Removing %d\n", current->val);
+  prev->next = current->next;
+  free(current);
 }
 
