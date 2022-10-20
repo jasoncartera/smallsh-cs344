@@ -28,6 +28,5 @@ void remove_node(node *head, int val) {
     current = current->next;
   }
   current->next = current->next->next;
-  free(current);
 }
 
