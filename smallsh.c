@@ -16,6 +16,7 @@ int main(void) {
   char *args[MAX_ARGS] = {NULL};
   pid_t pid = getpid();
   int exitStatus = 0;
+  pid_t pid_list[1024] = {0};
   
    // parent must ignore control-C (SIGINT)
   struct sigaction SIGINT_action = {0};
@@ -111,7 +112,7 @@ int main(void) {
     
     // All other commands
     else {
-      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile);
+      runExternalCommand(args, &exitStatus, &isBackground, inFile, outFile, pid_list);
     }
 
     // Before next prompt: free memory for file names if there was one

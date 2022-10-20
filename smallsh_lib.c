@@ -113,7 +113,7 @@ void parseInput(char *args[], pid_t pid, int *argc, int *isBackground, char **in
  *  outFile:      name of outFile if there is an output redirect
  */
 
-void runExternalCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, char *outFile) {
+void runExternalCommand(char *args[], int *exitStatus, int *isBackground, char *inFile, char *outFile, pid_t pid_list[]) {
   
   /* 
    *  Set up blocking of SIGTSTP so this signal is ignored by child foreground and background processes
@@ -202,6 +202,7 @@ void runExternalCommand(char *args[], int *exitStatus, int *isBackground, char *
 
     default:
       if (*isBackground) {
+     
         // WNOHANG flag for background process
         waitpid(spawnpid, exitStatus, WNOHANG);
         printf("background pid is %d\n", spawnpid);
