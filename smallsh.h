@@ -4,7 +4,7 @@
 #define MAX_ARGS 512
 #define MAX_IN 2048
 
-
+// define linked list node
 typedef struct node {
     pid_t val;
     struct node *next;
@@ -44,7 +44,7 @@ void runExternalCommand(char*[], int*, int*, char*, char*, node**);
 
 void handleSIGTSTP(int signo);
 
-
+// Linked list methods for keeping track of background PIDs
 void insert_node(pid_t val, node **head);
 
 void remove_node(node **head, pid_t val);
