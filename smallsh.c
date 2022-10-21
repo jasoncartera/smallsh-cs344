@@ -56,7 +56,7 @@ int main(void) {
           remove_node(&pid_list, rem->val);
             
         } 
-        else if (WIFSIGNALED(exitStatus)) {
+        if (WIFSIGNALED(exitStatus)) {
           printf("Background process %d terminated with signal %d\n", tmp->val, WTERMSIG(exitStatus));
           fflush(stdout);
           node *rem = tmp;
@@ -64,22 +64,10 @@ int main(void) {
           remove_node(&pid_list, rem->val);
         } 
       } else {
-        tmp = tmp->next;
+          tmp = tmp->next;  
       }
-    }  
+    }
 
-    // // Print out any completed background processes before prompting for additional commands
-    // while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
-    //   if (WIFEXITED(exitStatus)) {
-    //       printf("Background process %d terminated with status %d\n", childPid, WEXITSTATUS(exitStatus));
-    //       fflush(stdout);
-    //   } 
-    //   if (WIFSIGNALED(exitStatus)) {
-    //       printf("Background process %d terminated with signal %d\n", childPid, WTERMSIG(exitStatus));
-    //       fflush(stdout);
-    //   } 
-
-    // }
   
     // Parse the input
     parseInput(args, pid, &argc, &isBackground, &inFile, &outFile);

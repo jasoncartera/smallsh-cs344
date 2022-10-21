@@ -203,7 +203,7 @@ void runExternalCommand(char *args[], int *exitStatus, int *isBackground, char *
     default:
       if (*isBackground) {
         // WNOHANG flag for background process
-        insert_node(spawnpid, pid_list);
+        insert_node(spawnpid, pid_list); // and pid to linked list
         waitpid(spawnpid, exitStatus, WNOHANG);
         printf("background pid is %d\n", spawnpid);
         fflush(stdout);
