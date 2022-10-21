@@ -50,7 +50,6 @@ int main(void) {
         // Only check pid > 0, since empty element = 0 and waitpid will wait for any child process group id if == 0
         if (pid_list[i] > 0) {
           if (waitpid(pid_list[i], &exitStatus, WNOHANG) > 0) {
-            printf("%d\n", pid_list[i]);
             if (WIFEXITED(exitStatus)) {
               printf("Background process %d terminated with status %d\n", pid_list[i], WEXITSTATUS(exitStatus));
               fflush(stdout);
