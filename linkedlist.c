@@ -8,9 +8,10 @@
  * Adapted structure from my CS261 notes
  */
 
-// Inserts a node to the list
+
+// Inserts a node to the front of the list
 void insert_node(pid_t val, node **head) {
-  struct node *new_node = (node *) malloc(sizeof(node));
+  struct node *new_node = (node *) malloc(sizeof(node*));
   new_node->val = val;
   new_node->next = *head;
   *head = new_node;
@@ -20,7 +21,8 @@ void insert_node(pid_t val, node **head) {
 void remove_node(node **head, pid_t val) {
   node *current = *head;
   node *prev = *head;
-
+  
+  // if first link contains val
   if (current != NULL && current->val == val) {
     *head = current->next;
     free(current);
@@ -31,7 +33,6 @@ void remove_node(node **head, pid_t val) {
     prev = current;
     current = current->next;
   }
-  printf("Removing %d\n", current->val);
   prev->next = current->next;
   free(current);
 }

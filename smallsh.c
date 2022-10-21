@@ -45,23 +45,23 @@ int main(void) {
     char *outFile = NULL;
     
     
-    node *ptr = pid_list;
-    if (ptr != NULL) {
-      while (ptr != NULL){
-          if (waitpid(ptr->val, &exitStatus, WNOHANG) > 0) {
+    node *tmp = pid_list;
+    if (tmp != NULL) {
+      while (tmp != NULL){
+          if (waitpid(tmp->val, &exitStatus, WNOHANG) > 0) {
             if (WIFEXITED(exitStatus)) {
-              printf("Background process %d terminated with status %d\n", ptr->val, WEXITSTATUS(exitStatus));
+              printf("Background process %d terminated with status %d\n", tmp->val, WEXITSTATUS(exitStatus));
               fflush(stdout);
-              remove_node(&pid_list, ptr->val);
+              remove_node(&pid_list, tmp->val);
             } 
             if (WIFSIGNALED(exitStatus)) {
-              printf("Background process %d terminated with signal %d\n", ptr->val, WTERMSIG(exitStatus));
+              printf("Background process %d terminated with signal %d\n", tmp->val, WTERMSIG(exitStatus));
               fflush(stdout);
-              remove_node(&pid_list, ptr->val);
+              remove_node(&pid_list, tmp->val);
             } 
           }
         
-        ptr = ptr->next;
+        tmp = tmp->next;
       }  
     }
 
