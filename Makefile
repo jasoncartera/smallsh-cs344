@@ -1,5 +1,5 @@
 CC       = gcc
-RECFLAGS = -O3 -Wall -Wextra -Wpedantic 
+RECFLAGS = -O3 -Wextra -Wpedantic 
 #-Werror
 
 smallshmake:
