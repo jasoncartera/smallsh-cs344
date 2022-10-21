@@ -82,9 +82,10 @@ int main(void) {
 
     // Process exit command
     else if (!strcmp(args[0], "exit")) {
+      // kill any running processes first
       for (int i = 0; i < MAX_PID; i++) {
         if (pid_list[i] != 0) {
-          kill(pid_list[i], SIGKILL);
+          kill(pid_list[i], SIGTERM);
         }
       }
       // Free memory before exit
