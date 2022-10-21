@@ -11,7 +11,7 @@
 
 // Inserts a node to the front of the list
 void insert_node(pid_t val, node **head) {
-  struct node *new_node = (node *) malloc(sizeof(node*));
+  node *new_node = (node*) malloc(sizeof(node));
   new_node->val = val;
   new_node->next = *head;
   *head = new_node;

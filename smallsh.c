@@ -46,24 +46,26 @@ int main(void) {
     
     
     node *tmp = pid_list;
-    if (tmp != NULL) {
-      while (tmp != NULL){
-          if (waitpid(tmp->val, &exitStatus, WNOHANG) > 0) {
-            if (WIFEXITED(exitStatus)) {
-              printf("Background process %d terminated with status %d\n", tmp->val, WEXITSTATUS(exitStatus));
-              fflush(stdout);
-              remove_node(&pid_list, tmp->val);
-            } 
-            if (WIFSIGNALED(exitStatus)) {
-              printf("Background process %d terminated with signal %d\n", tmp->val, WTERMSIG(exitStatus));
-              fflush(stdout);
-              remove_node(&pid_list, tmp->val);
-            } 
-          }
+    while (tmp != NULL){
+      if (waitpid(tmp->val, &exitStatus, WNOHANG) > 0) {
+        if (WIFEXITED(exitStatus)) {
+          printf("Background process %d terminated with status %d\n", tmp->val, WEXITSTATUS(exitStatus));
+          fflush(stdout);
+          node *rem = tmp;
+          tmp = tmp->next;
+          remove_node(&pid_list, rem->val);
+            
+        } 
+        if (WIFSIGNALED(exitStatus)) {
+          printf("Background process %d terminated with signal %d\n", tmp->val, WTERMSIG(exitStatus));
+          fflush(stdout);
+          node *rem = tmp;
+          tmp = tmp->next;
+          remove_node(&pid_list, rem->val);
+        } 
+      }
         
-        tmp = tmp->next;
-      }  
-    }
+    }  
 
     // // Print out any completed background processes before prompting for additional commands
     // while ((childPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) { 
