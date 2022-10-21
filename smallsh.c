@@ -51,20 +51,21 @@ int main(void) {
         if (WIFEXITED(exitStatus)) {
           printf("Background process %d terminated with status %d\n", tmp->val, WEXITSTATUS(exitStatus));
           fflush(stdout);
-          node *rem = tmp;
-          tmp = tmp->next;
+          node *rem = tmp; // node to be removed
+          tmp = tmp->next; // advance before freeing memory in remove_node
           remove_node(&pid_list, rem->val);
             
         } 
-        if (WIFSIGNALED(exitStatus)) {
+        else if (WIFSIGNALED(exitStatus)) {
           printf("Background process %d terminated with signal %d\n", tmp->val, WTERMSIG(exitStatus));
           fflush(stdout);
           node *rem = tmp;
           tmp = tmp->next;
           remove_node(&pid_list, rem->val);
         } 
+      } else {
+        tmp = tmp->next;
       }
-        
     }  
 
     // // Print out any completed background processes before prompting for additional commands

@@ -11,10 +11,19 @@
 
 // Inserts a node to the front of the list
 void insert_node(pid_t val, node **head) {
+  // Create new node
   node *new_node = (node*) malloc(sizeof(node));
   new_node->val = val;
-  new_node->next = *head;
-  *head = new_node;
+  new_node->next = NULL;
+  if (*head == NULL) {
+    *head = new_node;
+  } else {
+    node *tmp = *head;
+    while (tmp->next != NULL) {
+      tmp = tmp->next;
+    }
+    tmp->next = new_node;
+  }
 }
 
 // Removes a node from the list and frees memory
