@@ -5,7 +5,9 @@
 /*
  * Defines a simple singlely linked list to keep track of background pid
  * Did this to avoid resizing an array everytime I remove a background pid
- * Adapted structure from my CS261 notes
+ * Adapted structure from my CS261 notes and followed 
+ * https://www.learn-c.org/en/Linked_lists for guidance on C 
+ * (pointer to pointer discussion helped me)
  */
 
 
