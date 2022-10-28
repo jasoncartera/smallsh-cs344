@@ -6,7 +6,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include "llist.h"
 #include "smallsh.h"
+
 
 // Global variable to toggle SIGTSTP - I don't think there is another way to handle this;
 // type from The Linux Programming Interface 21.1.3

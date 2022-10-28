@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smallsh.h"
+#include "llist.h"
+
 /*
  * Defines a simple singlely linked list to keep track of background pid
  * Did this to avoid resizing an array everytime I remove a background pid

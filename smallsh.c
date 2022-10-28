@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "llist.h"
 #include "smallsh.h"
 
 
