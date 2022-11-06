@@ -87,7 +87,6 @@ int main(void) {
 
     // Process exit command
     else if (!strcmp(args[0], "exit")) {
-      //TODO: free any child processes - require keeping track in array?
 
       // Free memory before exit
       free(inFile);
@@ -95,6 +94,14 @@ int main(void) {
       for (int i = 0; i < MAX_ARGS; i++) {
         free(args[i]);
       }
+      // Kill any child processes
+      node *tmp = pid_list;
+      while (tmp != NULL) {
+        kill(tmp->val, SIGKILL);
+        tmp = tmp->next;
+        free(tmp);
+      }
+
       free(pid_list);
       exit(0);
     }
